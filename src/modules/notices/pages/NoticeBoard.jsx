@@ -23,10 +23,8 @@ const COLOR_MAP = {
 
 const PRIORITY_BADGE = { low: 'bg-gray-100 text-gray-600', medium: 'bg-blue-100 text-blue-700', high: 'bg-red-100 text-red-700' };
 
-function StatCard({ label, value, color = 'blue' }) {
-  const c = { blue: 'bg-blue-50 border-blue-200 text-blue-700', red: 'bg-red-50 border-red-200 text-red-700', amber: 'bg-amber-50 border-amber-200 text-amber-700' };
-  return <div className={`rounded-xl border p-4 ${c[color]}`}><p className="text-xs font-semibold uppercase tracking-wide opacity-60">{label}</p><p className="text-2xl font-bold mt-1">{value ?? '—'}</p></div>;
-}
+import { Megaphone, CheckCircle2, Pin, AlertTriangle } from 'lucide-react';
+import StatCard from '@/components/StatCard';
 
 function NewNoticeForm({ onClose, onCreated }) {
   const dispatch = useDispatch();
@@ -115,10 +113,10 @@ export default function NoticeBoard() {
 
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard label="Total" value={stats.total} color="blue" />
-          <StatCard label="Published" value={stats.published} color="blue" />
-          <StatCard label="Pinned" value={stats.pinned} color="amber" />
-          <StatCard label="Urgent" value={stats.urgent} color="red" />
+          <StatCard label="Total" value={stats.total} theme="blue" icon={Megaphone} />
+          <StatCard label="Published" value={stats.published} theme="emerald" icon={CheckCircle2} />
+          <StatCard label="Pinned" value={stats.pinned} theme="amber" icon={Pin} />
+          <StatCard label="Urgent" value={stats.urgent} theme="rose" icon={AlertTriangle} />
         </div>
       )}
 

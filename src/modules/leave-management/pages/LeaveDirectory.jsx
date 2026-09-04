@@ -3,10 +3,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { fetchLeaveRequests, fetchLeaveStats, approveLeaveRequest, rejectLeaveRequest, deleteLeaveRequest } from '@/features/leave-management/leaveSlice';
 
-function StatCard({ label, value, color = 'blue' }) {
-  const c = { blue: 'bg-blue-50 border-blue-200 text-blue-700', amber: 'bg-amber-50 border-amber-200 text-amber-700', green: 'bg-green-50 border-green-200 text-green-700', red: 'bg-red-50 border-red-200 text-red-700' };
-  return <div className={`rounded-xl border p-4 ${c[color]}`}><p className="text-xs font-semibold uppercase tracking-wide opacity-60">{label}</p><p className="text-2xl font-bold mt-1">{value ?? '—'}</p></div>;
-}
+import { Clock, CheckCircle2, XCircle, ClipboardList } from 'lucide-react';
+import StatCard from '@/components/StatCard';
 
 const STATUS_BADGE = {
   pending: 'bg-amber-100 text-amber-800',
@@ -51,10 +49,10 @@ export default function LeaveDirectory() {
 
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard label="Pending" value={stats.pending} color="amber" />
-          <StatCard label="Approved" value={stats.approved} color="green" />
-          <StatCard label="Rejected" value={stats.rejected} color="red" />
-          <StatCard label="Total" value={stats.total} color="blue" />
+          <StatCard label="Pending" value={stats.pending} theme="amber" icon={Clock} />
+          <StatCard label="Approved" value={stats.approved} theme="emerald" icon={CheckCircle2} />
+          <StatCard label="Rejected" value={stats.rejected} theme="rose" icon={XCircle} />
+          <StatCard label="Total" value={stats.total} theme="blue" icon={ClipboardList} />
         </div>
       )}
 

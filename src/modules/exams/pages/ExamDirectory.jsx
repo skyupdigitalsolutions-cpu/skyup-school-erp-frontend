@@ -1,16 +1,14 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
+import { ClipboardList, CalendarClock, PlayCircle, PencilLine, CheckCircle2 } from 'lucide-react';
+import StatCard from '@/components/StatCard';
 import { fetchExams, fetchExamDashboard, changeExamStatus, deleteExam } from '@/features/exams/examsSlice';
 
 const STATUS_COLORS = { draft:'bg-gray-100 text-gray-600', scheduled:'bg-blue-100 text-blue-700', ongoing:'bg-green-100 text-green-700', evaluation:'bg-yellow-100 text-yellow-700', completed:'bg-purple-100 text-purple-700', cancelled:'bg-red-100 text-red-700' };
 const EXAM_TYPES = ['unit_test','mid_term','final','annual','mock','competitive','internal'];
 const CLASSES = ['1','2','3','4','5','6','7','8','9','10','11','12'];
 
-function DashCard({ label, value, color='blue' }) {
-  const c = { blue:'bg-blue-50 border-blue-200 text-blue-700', green:'bg-green-50 border-green-200 text-green-700', yellow:'bg-yellow-50 border-yellow-200 text-yellow-700', purple:'bg-purple-50 border-purple-200 text-purple-700', orange:'bg-orange-50 border-orange-200 text-orange-700' };
-  return <div className={`rounded-xl border p-4 ${c[color]}`}><p className="text-xs font-semibold uppercase tracking-wide opacity-60">{label}</p><p className="text-2xl font-bold mt-1">{value ?? '—'}</p></div>;
-}
 
 export default function ExamDirectory() {
   const dispatch = useDispatch();
@@ -36,11 +34,11 @@ export default function ExamDirectory() {
 
       {dashboard && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <DashCard label="Total" value={dashboard.total} color="blue" />
-          <DashCard label="Scheduled" value={dashboard.upcoming} color="orange" />
-          <DashCard label="Ongoing" value={dashboard.ongoing} color="green" />
-          <DashCard label="Evaluation" value={dashboard.evaluation} color="yellow" />
-          <DashCard label="Completed" value={dashboard.completed} color="purple" />
+          <StatCard label="Total" value={dashboard.total} theme="blue" icon={ClipboardList} />
+          <StatCard label="Scheduled" value={dashboard.upcoming} theme="amber" icon={CalendarClock} />
+          <StatCard label="Ongoing" value={dashboard.ongoing} theme="emerald" icon={PlayCircle} />
+          <StatCard label="Evaluation" value={dashboard.evaluation} theme="cyan" icon={PencilLine} />
+          <StatCard label="Completed" value={dashboard.completed} theme="violet" icon={CheckCircle2} />
         </div>
       )}
 

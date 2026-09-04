@@ -3,10 +3,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { fetchTransactions, fetchFinanceStats, deleteTransaction } from '@/features/finance/financeSlice';
 
-function StatCard({ label, value, color = 'blue' }) {
-  const c = { blue: 'bg-blue-50 border-blue-200 text-blue-700', green: 'bg-green-50 border-green-200 text-green-700', amber: 'bg-amber-50 border-amber-200 text-amber-700', red: 'bg-red-50 border-red-200 text-red-700' };
-  return <div className={`rounded-xl border p-4 ${c[color]}`}><p className="text-xs font-semibold uppercase tracking-wide opacity-60">{label}</p><p className="text-2xl font-bold mt-1">₹{(value ?? 0).toLocaleString('en-IN')}</p></div>;
-}
+import { IndianRupee, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
+import StatCard from '@/components/StatCard';
 
 const STATUS_BADGE = {
   paid: 'bg-green-100 text-green-800',
@@ -44,10 +42,10 @@ export default function FinanceDirectory() {
 
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard label="Total" value={stats.totalAmount} color="blue" />
-          <StatCard label="Collected" value={stats.collected} color="green" />
-          <StatCard label="Pending" value={stats.pending} color="amber" />
-          <StatCard label="Overdue" value={stats.overdue} color="red" />
+          <StatCard label="Total" value={`₹${(stats.totalAmount ?? 0).toLocaleString('en-IN')}`} theme="blue" icon={IndianRupee} />
+          <StatCard label="Collected" value={`₹${(stats.collected ?? 0).toLocaleString('en-IN')}`} theme="emerald" icon={CheckCircle2} />
+          <StatCard label="Pending" value={`₹${(stats.pending ?? 0).toLocaleString('en-IN')}`} theme="amber" icon={Clock} />
+          <StatCard label="Overdue" value={`₹${(stats.overdue ?? 0).toLocaleString('en-IN')}`} theme="rose" icon={AlertTriangle} />
         </div>
       )}
 

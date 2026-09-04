@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { useDispatch } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
-import { createExam } from '@/features/exams/examsSlice';
+import { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate, useParams } from 'react-router-dom';
+import { createExam, updateExam, fetchExam } from '@/features/exams/examsSlice';
 
 const CLASSES = ['1','2','3','4','5','6','7','8','9','10','11','12'];
 const SECTIONS = ['A','B','C','D','E'];
@@ -29,15 +29,38 @@ function Card({ title, subtitle, children }) {
 }
 
 export default function AddExam() {
+  const { id } = useParams();
+  const isEdit = Boolean(id);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { current } = useSelector((s) => s.exams);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [loaded, setLoaded] = useState(!isEdit);
   const [form, setForm] = useState({
     examId: '', name: '', code: '', type: '', academicYear: '', term: '', description: '', status: 'draft',
     classAllocations: [{ class: '', sections: [] }],
     timetable: [{ date: '', subject: '', class: '', section: '', startTime: '', endTime: '', duration: 60, room: '', maxMarks: 100, passingMarks: 35 }],
   });
+
+  useEffect(() => {
+    if (isEdit) dispatch(fetchExam(id));
+  }, [dispatch, id, isEdit]);
+
+  // Populate the form once the existing exam has loaded (edit mode only).
+  useEffect(() => {
+    if (!isEdit || !current || current._id !== id) return;
+    setForm({
+      examId: current.examId || '', name: current.name || '', code: current.code || '',
+      type: current.type || '', academicYear: current.academicYear || '', term: current.term || '',
+      description: current.description || '', status: current.status || 'draft',
+      classAllocations: current.classAllocations?.length ? current.classAllocations : [{ class: '', sections: [] }],
+      timetable: current.timetable?.length
+        ? current.timetable.map((t) => ({ ...t, date: t.date ? String(t.date).slice(0, 10) : '' }))
+        : [{ date: '', subject: '', class: '', section: '', startTime: '', endTime: '', duration: 60, room: '', maxMarks: 100, passingMarks: 35 }],
+    });
+    setLoaded(true);
+  }, [current, id, isEdit]);
 
   const set = (path, value) => {
     setForm(prev => {
@@ -68,11 +91,23 @@ export default function AddExam() {
     setSubmitting(true);
     try {
       const payload = { ...form, classAllocations: form.classAllocations.filter(a => a.class) };
-      const result = await dispatch(createExam(payload));
-      if (createExam.fulfilled.match(result)) navigate('/principal/exams');
-      else setError(result.payload?.message || 'Failed to create exam.');
+      const result = isEdit
+        ? await dispatch(updateExam({ id, payload }))
+        : await dispatch(createExam(payload));
+      const success = isEdit ? updateExam.fulfilled.match(result) : createExam.fulfilled.match(result);
+      if (success) navigate(isEdit ? `/principal/exams/${id}` : '/principal/exams');
+      else setError(result.payload?.message || `Failed to ${isEdit ? 'update' : 'create'} exam.`);
     } finally { setSubmitting(false); }
   };
+
+  if (isEdit && !loaded) {
+    return (
+      <div className="p-12 text-center">
+        <div className="inline-block w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mb-3" />
+        <p className="text-sm text-gray-400">Loading exam…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-5">
@@ -80,7 +115,7 @@ export default function AddExam() {
         <button onClick={() => navigate('/principal/exams')} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
         </button>
-        <div><h1 className="text-xl font-bold text-gray-900">Create New Examination</h1><p className="text-sm text-gray-400 mt-0.5">Set up exam details, timetable and class allocations</p></div>
+        <div><h1 className="text-xl font-bold text-gray-900">{isEdit ? 'Edit Examination' : 'Create New Examination'}</h1><p className="text-sm text-gray-400 mt-0.5">{isEdit ? 'Update exam details, timetable and class allocations' : 'Set up exam details, timetable and class allocations'}</p></div>
       </div>
 
       {error && <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">{error}</div>}
@@ -164,7 +199,7 @@ export default function AddExam() {
         <button onClick={() => navigate('/principal/exams')} className="px-5 py-2.5 text-sm font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">Cancel</button>
         <button onClick={handleSubmit} disabled={submitting} className="px-6 py-2.5 text-sm font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 flex items-center gap-2">
           {submitting && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-          {submitting ? 'Saving…' : 'Create Examination'}
+          {submitting ? 'Saving…' : isEdit ? 'Update Examination' : 'Create Examination'}
         </button>
       </div>
     </div>

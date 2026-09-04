@@ -6,10 +6,8 @@ import { fetchCaretakers, fetchCaretakerStats, changeCaretakerStatus, deleteCare
 const VERIFY_COLORS = { verified: 'bg-green-100 text-green-700', pending: 'bg-yellow-100 text-yellow-700', rejected: 'bg-red-100 text-red-700' };
 const STATUS_COLORS = { active: 'bg-green-100 text-green-800', inactive: 'bg-gray-100 text-gray-600', suspended: 'bg-red-100 text-red-800', archived: 'bg-yellow-100 text-yellow-800' };
 
-function StatCard({ label, value, color = 'blue' }) {
-  const c = { blue:'bg-blue-50 border-blue-200 text-blue-700', green:'bg-green-50 border-green-200 text-green-700', yellow:'bg-yellow-50 border-yellow-200 text-yellow-700', red:'bg-red-50 border-red-200 text-red-700' };
-  return <div className={`rounded-xl border p-4 ${c[color]}`}><p className="text-xs font-semibold uppercase tracking-wide opacity-60">{label}</p><p className="text-2xl font-bold mt-1">{value ?? '—'}</p></div>;
-}
+import { ShieldCheck, UserCheck, BadgeCheck, Clock } from 'lucide-react';
+import StatCard from '@/components/StatCard';
 
 export default function CaretakerDirectory() {
   const dispatch = useDispatch();
@@ -43,10 +41,10 @@ export default function CaretakerDirectory() {
 
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard label="Total" value={stats.total} color="blue" />
-          <StatCard label="Active" value={stats.active} color="green" />
-          <StatCard label="Verified" value={stats.verified} color="green" />
-          <StatCard label="Pending Verification" value={stats.pending} color="yellow" />
+          <StatCard label="Total" value={stats.total} theme="blue" icon={ShieldCheck} />
+          <StatCard label="Active" value={stats.active} theme="emerald" icon={UserCheck} />
+          <StatCard label="Verified" value={stats.verified} theme="emerald" icon={BadgeCheck} />
+          <StatCard label="Pending Verification" value={stats.pending} theme="amber" icon={Clock} />
         </div>
       )}
 

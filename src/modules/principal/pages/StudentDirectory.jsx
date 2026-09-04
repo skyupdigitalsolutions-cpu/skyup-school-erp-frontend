@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
+import { Users, UserCheck, School, FileStack } from 'lucide-react';
+import StatCard from '@/components/StatCard';
 import {
   fetchStudents, fetchStudentStats,
   changeStudentStatus, archiveStudent, deleteStudent,
@@ -25,20 +27,6 @@ const FEE_COLORS = {
   overdue: 'bg-red-100 text-red-700',
 };
 
-function StatCard({ label, value, color = 'blue' }) {
-  const colors = {
-    blue: 'bg-blue-50 border-blue-200 text-blue-700',
-    green: 'bg-green-50 border-green-200 text-green-700',
-    yellow: 'bg-yellow-50 border-yellow-200 text-yellow-700',
-    purple: 'bg-purple-50 border-purple-200 text-purple-700',
-  };
-  return (
-    <div className={`rounded-lg border p-4 ${colors[color]}`}>
-      <p className="text-sm font-medium opacity-70">{label}</p>
-      <p className="text-2xl font-bold mt-1">{value ?? '—'}</p>
-    </div>
-  );
-}
 
 function BulkPromoteModal({ selectedCount, onConfirm, onClose }) {
   const [form, setForm] = useState({ newClass: '', newSection: '', newAcademicYear: '' });
@@ -150,10 +138,10 @@ export default function StudentDirectory() {
       {/* Stats row */}
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard label="Total Students" value={stats.total} color="blue" />
-          <StatCard label="Active" value={stats.active} color="green" />
-          <StatCard label="Classes" value={stats.byClass?.length} color="purple" />
-          <StatCard label="Page" value={`${page} / ${meta.pages}`} color="yellow" />
+          <StatCard label="Total Students" value={stats.total} theme="blue" icon={Users} />
+          <StatCard label="Active" value={stats.active} theme="emerald" icon={UserCheck} />
+          <StatCard label="Classes" value={stats.byClass?.length} theme="violet" icon={School} />
+          <StatCard label="Page" value={`${page} / ${meta.pages}`} theme="amber" icon={FileStack} />
         </div>
       )}
 

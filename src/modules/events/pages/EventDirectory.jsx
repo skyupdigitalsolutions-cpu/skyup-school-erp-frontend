@@ -1,14 +1,12 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
+import { CalendarDays, CalendarClock, PlayCircle, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import StatCard from '@/components/StatCard';
 import { fetchEvents, fetchEventDashboard, changeEventStatus, deleteEvent, bulkCancelEvents, toggleSelectEvent, clearEventSelection, STATUS_COLORS } from '@/features/events/eventsSlice';
 
 const CATEGORIES = ['Cultural','Sports','Academic','Annual Day','Science Fair','Competition','Workshop','Seminar','Field Trip','Other'];
 
-function DashCard({ label, value, color='blue' }) {
-  const c = { blue:'bg-blue-50 border-blue-200 text-blue-700', green:'bg-green-50 border-green-200 text-green-700', orange:'bg-orange-50 border-orange-200 text-orange-700', purple:'bg-purple-50 border-purple-200 text-purple-700', red:'bg-red-50 border-red-200 text-red-700', yellow:'bg-yellow-50 border-yellow-200 text-yellow-700' };
-  return <div className={`rounded-xl border p-4 ${c[color]}`}><p className="text-xs font-semibold uppercase tracking-wide opacity-60">{label}</p><p className="text-2xl font-bold mt-1">{value ?? '—'}</p></div>;
-}
 
 export default function EventDirectory() {
   const dispatch = useDispatch();
@@ -40,12 +38,12 @@ export default function EventDirectory() {
 
       {dashboard && (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <DashCard label="Total" value={dashboard.total} color="blue" />
-          <DashCard label="Upcoming" value={dashboard.upcoming} color="orange" />
-          <DashCard label="Ongoing" value={dashboard.ongoing} color="green" />
-          <DashCard label="Completed" value={dashboard.completed} color="purple" />
-          <DashCard label="Cancelled" value={dashboard.cancelled} color="red" />
-          <DashCard label="Pending Approval" value={dashboard.pendingApprovals} color="yellow" />
+          <StatCard label="Total" value={dashboard.total} theme="blue" icon={CalendarDays} />
+          <StatCard label="Upcoming" value={dashboard.upcoming} theme="amber" icon={CalendarClock} />
+          <StatCard label="Ongoing" value={dashboard.ongoing} theme="emerald" icon={PlayCircle} />
+          <StatCard label="Completed" value={dashboard.completed} theme="violet" icon={CheckCircle2} />
+          <StatCard label="Cancelled" value={dashboard.cancelled} theme="rose" icon={XCircle} />
+          <StatCard label="Pending Approval" value={dashboard.pendingApprovals} theme="cyan" icon={Clock} />
         </div>
       )}
 

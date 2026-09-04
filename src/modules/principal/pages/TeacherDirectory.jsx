@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
+import { GraduationCap, UserCheck, Building2, TrendingUp } from 'lucide-react';
+import StatCard from '@/components/StatCard';
 import {
   fetchTeachers, fetchTeacherDashboard,
   changeTeacherStatus, archiveTeacher, deleteTeacher,
@@ -18,21 +20,6 @@ const STATUS_COLORS = {
   archived: 'bg-yellow-100 text-yellow-800',
 };
 
-function DashboardCard({ label, value, sub, color = 'blue' }) {
-  const c = {
-    blue: 'bg-blue-50 border-blue-200 text-blue-700',
-    green: 'bg-green-50 border-green-200 text-green-700',
-    purple: 'bg-purple-50 border-purple-200 text-purple-700',
-    orange: 'bg-orange-50 border-orange-200 text-orange-700',
-  };
-  return (
-    <div className={`rounded-xl border p-4 ${c[color]}`}>
-      <p className="text-xs font-semibold uppercase tracking-wide opacity-60">{label}</p>
-      <p className="text-2xl font-bold mt-1">{value ?? '—'}</p>
-      {sub && <p className="text-xs opacity-60 mt-0.5">{sub}</p>}
-    </div>
-  );
-}
 
 export default function TeacherDirectory() {
   const dispatch = useDispatch();
@@ -97,17 +84,18 @@ export default function TeacherDirectory() {
       {/* Dashboard stats */}
       {dashboard && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <DashboardCard label="Total Teachers" value={dashboard.total} color="blue" />
-          <DashboardCard label="Active" value={dashboard.active} color="green" />
-          <DashboardCard label="Departments" value={dashboard.departmentStats?.length} color="purple" />
-          <DashboardCard
+          <StatCard label="Total Teachers" value={dashboard.total} theme="blue" icon={GraduationCap} />
+          <StatCard label="Active" value={dashboard.active} theme="emerald" icon={UserCheck} />
+          <StatCard label="Departments" value={dashboard.departmentStats?.length} theme="violet" icon={Building2} />
+          <StatCard
             label="Avg Attendance"
+            theme="amber"
+            icon={TrendingUp}
             value={
               dashboard.departmentStats?.length
                 ? `${(dashboard.departmentStats.reduce((s, d) => s + (d.avgAttendance || 0), 0) / dashboard.departmentStats.length).toFixed(0)}%`
                 : '—'
             }
-            color="orange"
           />
         </div>
       )}

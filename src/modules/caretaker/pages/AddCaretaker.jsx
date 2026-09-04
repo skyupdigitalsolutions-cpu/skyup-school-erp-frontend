@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { useDispatch } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
-import { createCaretaker } from '@/features/caretaker/caretakerSlice';
+import { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate, useParams } from 'react-router-dom';
+import { createCaretaker, updateCaretaker, fetchCaretaker } from '@/features/caretaker/caretakerSlice';
 
 function Field({ label, required, children }) {
   return <div><label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">{label}{required && <span className="text-red-500 ml-1">*</span>}</label>{children}</div>;
@@ -17,15 +17,51 @@ function Card({ title, children }) {
 }
 
 export default function AddCaretaker() {
+  const { id } = useParams();
+  const isEdit = Boolean(id);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { current } = useSelector((s) => s.caretaker);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [loaded, setLoaded] = useState(!isEdit);
   const [form, setForm] = useState({
     caretakerId: '', employmentType: 'full_time', status: 'active',
     personal: { firstName: '', lastName: '', dateOfBirth: '', gender: '', bloodGroup: '', relationship: '', phone: '', email: '', address: { line1: '', city: '', state: '', pincode: '', country: 'India' }, emergencyContact: { name: '', phone: '', relation: '' } },
     vehicleDetails: { vehicleNumber: '', model: '', route: '', capacity: '' },
   });
+
+  useEffect(() => {
+    if (isEdit) dispatch(fetchCaretaker(id));
+  }, [dispatch, id, isEdit]);
+
+  // Populate the form once the existing caretaker has loaded (edit mode only).
+  useEffect(() => {
+    if (!isEdit || !current || current._id !== id) return;
+    setForm({
+      caretakerId: current.caretakerId || '', employmentType: current.employmentType || 'full_time', status: current.status || 'active',
+      personal: {
+        firstName: current.personal?.firstName || '', lastName: current.personal?.lastName || '',
+        dateOfBirth: current.personal?.dateOfBirth ? String(current.personal.dateOfBirth).slice(0, 10) : '',
+        gender: current.personal?.gender || '', bloodGroup: current.personal?.bloodGroup || '',
+        relationship: current.personal?.relationship || '', phone: current.personal?.phone || '', email: current.personal?.email || '',
+        address: {
+          line1: current.personal?.address?.line1 || '', city: current.personal?.address?.city || '',
+          state: current.personal?.address?.state || '', pincode: current.personal?.address?.pincode || '',
+          country: current.personal?.address?.country || 'India',
+        },
+        emergencyContact: {
+          name: current.personal?.emergencyContact?.name || '', phone: current.personal?.emergencyContact?.phone || '',
+          relation: current.personal?.emergencyContact?.relation || '',
+        },
+      },
+      vehicleDetails: {
+        vehicleNumber: current.vehicleDetails?.vehicleNumber || '', model: current.vehicleDetails?.model || '',
+        route: current.vehicleDetails?.route || '', capacity: current.vehicleDetails?.capacity ?? '',
+      },
+    });
+    setLoaded(true);
+  }, [current, id, isEdit]);
 
   const set = (path, value) => {
     setForm(prev => {
@@ -42,11 +78,24 @@ export default function AddCaretaker() {
     if (!form.personal.phone.trim()) return setError('Phone is required.');
     setSubmitting(true);
     try {
-      const result = await dispatch(createCaretaker({ ...form, vehicleDetails: { ...form.vehicleDetails, capacity: Number(form.vehicleDetails.capacity) || 0 } }));
-      if (createCaretaker.fulfilled.match(result)) navigate('/principal/caretakers');
-      else setError(result.payload?.message || 'Failed to create caretaker.');
+      const payload = { ...form, vehicleDetails: { ...form.vehicleDetails, capacity: Number(form.vehicleDetails.capacity) || 0 } };
+      const result = isEdit
+        ? await dispatch(updateCaretaker({ id, payload }))
+        : await dispatch(createCaretaker(payload));
+      const success = isEdit ? updateCaretaker.fulfilled.match(result) : createCaretaker.fulfilled.match(result);
+      if (success) navigate(isEdit ? `/principal/caretakers/${id}` : '/principal/caretakers');
+      else setError(result.payload?.message || `Failed to ${isEdit ? 'update' : 'create'} caretaker.`);
     } finally { setSubmitting(false); }
   };
+
+  if (isEdit && !loaded) {
+    return (
+      <div className="p-12 text-center">
+        <div className="inline-block w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mb-3" />
+        <p className="text-sm text-gray-400">Loading caretaker…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-5">
@@ -54,7 +103,7 @@ export default function AddCaretaker() {
         <button onClick={() => navigate('/principal/caretakers')} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
         </button>
-        <div><h1 className="text-xl font-bold text-gray-900">Add New Caretaker</h1><p className="text-sm text-gray-400 mt-0.5">Register a new caretaker or driver</p></div>
+        <div><h1 className="text-xl font-bold text-gray-900">{isEdit ? 'Edit Caretaker' : 'Add New Caretaker'}</h1><p className="text-sm text-gray-400 mt-0.5">{isEdit ? 'Update caretaker or driver details' : 'Register a new caretaker or driver'}</p></div>
       </div>
 
       {error && <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">{error}</div>}
@@ -100,7 +149,7 @@ export default function AddCaretaker() {
         <button onClick={() => navigate('/principal/caretakers')} className="px-5 py-2.5 text-sm font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">Cancel</button>
         <button onClick={handleSubmit} disabled={submitting} className="px-6 py-2.5 text-sm font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 flex items-center gap-2">
           {submitting && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-          {submitting ? 'Saving…' : 'Save Caretaker'}
+          {submitting ? 'Saving…' : isEdit ? 'Update Caretaker' : 'Save Caretaker'}
         </button>
       </div>
     </div>

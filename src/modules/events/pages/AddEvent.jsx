@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { useDispatch } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
-import { createEvent } from '@/features/events/eventsSlice';
+import { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate, useParams } from 'react-router-dom';
+import { createEvent, updateEvent, fetchEvent } from '@/features/events/eventsSlice';
 
 const CATEGORIES = ['Cultural','Sports','Academic','Annual Day','Science Fair','Competition','Workshop','Seminar','Field Trip','Other'];
 
@@ -19,10 +19,14 @@ function Card({ title, subtitle, children }) {
 }
 
 export default function AddEvent() {
+  const { id } = useParams();
+  const isEdit = Boolean(id);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { current } = useSelector((s) => s.events);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [loaded, setLoaded] = useState(!isEdit);
   const [form, setForm] = useState({
     eventId: '', name: '', code: '', category: '', description: '', academicYear: '', status: 'draft',
     schedule: { startDate: '', endDate: '' },
@@ -30,6 +34,34 @@ export default function AddEvent() {
     organizer: { name: '', department: '', phone: '', email: '' },
     budget: { approved: '' },
   });
+
+  useEffect(() => {
+    if (isEdit) dispatch(fetchEvent(id));
+  }, [dispatch, id, isEdit]);
+
+  // Populate the form once the existing event has loaded (edit mode only).
+  useEffect(() => {
+    if (!isEdit || !current || current._id !== id) return;
+    setForm({
+      eventId: current.eventId || '', name: current.name || '', code: current.code || '',
+      category: current.category || '', description: current.description || '',
+      academicYear: current.academicYear || '', status: current.status || 'draft',
+      schedule: {
+        startDate: current.schedule?.startDate ? current.schedule.startDate.slice(0, 10) : '',
+        endDate: current.schedule?.endDate ? current.schedule.endDate.slice(0, 10) : '',
+      },
+      venue: {
+        hall: current.venue?.hall || '', room: current.venue?.room || '',
+        address: current.venue?.address || '', seatingCapacity: current.venue?.seatingCapacity ?? '',
+      },
+      organizer: {
+        name: current.organizer?.name || '', department: current.organizer?.department || '',
+        phone: current.organizer?.phone || '', email: current.organizer?.email || '',
+      },
+      budget: { approved: current.budget?.approved ?? '' },
+    });
+    setLoaded(true);
+  }, [current, id, isEdit]);
 
   const set = (path, value) => {
     setForm(prev => {
@@ -52,11 +84,23 @@ export default function AddEvent() {
     setSubmitting(true);
     try {
       const payload = { ...form, venue: { ...form.venue, seatingCapacity: Number(form.venue.seatingCapacity) || 0 }, budget: { ...form.budget, approved: Number(form.budget.approved) || 0 } };
-      const result = await dispatch(createEvent(payload));
-      if (createEvent.fulfilled.match(result)) navigate('/principal/events');
-      else setError(result.payload?.message || 'Failed to create event.');
+      const result = isEdit
+        ? await dispatch(updateEvent({ id, payload }))
+        : await dispatch(createEvent(payload));
+      const success = isEdit ? updateEvent.fulfilled.match(result) : createEvent.fulfilled.match(result);
+      if (success) navigate(isEdit ? `/principal/events/${id}` : '/principal/events');
+      else setError(result.payload?.message || `Failed to ${isEdit ? 'update' : 'create'} event.`);
     } finally { setSubmitting(false); }
   };
+
+  if (isEdit && !loaded) {
+    return (
+      <div className="p-12 text-center">
+        <div className="inline-block w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mb-3" />
+        <p className="text-sm text-gray-400">Loading event…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-5">
@@ -64,7 +108,7 @@ export default function AddEvent() {
         <button onClick={() => navigate('/principal/events')} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
         </button>
-        <div><h1 className="text-xl font-bold text-gray-900">Add New Event</h1><p className="text-sm text-gray-400 mt-0.5">Fill in the event details below</p></div>
+        <div><h1 className="text-xl font-bold text-gray-900">{isEdit ? 'Edit Event' : 'Add New Event'}</h1><p className="text-sm text-gray-400 mt-0.5">{isEdit ? 'Update the event details below' : 'Fill in the event details below'}</p></div>
       </div>
 
       {error && <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">{error}</div>}
@@ -110,7 +154,7 @@ export default function AddEvent() {
         <button onClick={() => navigate('/principal/events')} className="px-5 py-2.5 text-sm font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">Cancel</button>
         <button onClick={handleSubmit} disabled={submitting} className="px-6 py-2.5 text-sm font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 flex items-center gap-2">
           {submitting && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-          {submitting ? 'Saving…' : 'Save Event'}
+          {submitting ? 'Saving…' : isEdit ? 'Update Event' : 'Save Event'}
         </button>
       </div>
     </div>

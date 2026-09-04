@@ -3,10 +3,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { fetchClasses, fetchClassStats, deleteClass } from '@/features/classes/classSlice';
 
-function StatCard({ label, value, color = 'blue' }) {
-  const c = { blue: 'bg-blue-50 border-blue-200 text-blue-700', green: 'bg-green-50 border-green-200 text-green-700', yellow: 'bg-yellow-50 border-yellow-200 text-yellow-700' };
-  return <div className={`rounded-xl border p-4 ${c[color]}`}><p className="text-xs font-semibold uppercase tracking-wide opacity-60">{label}</p><p className="text-2xl font-bold mt-1">{value ?? '—'}</p></div>;
-}
+import { School, CheckCircle2, XCircle } from 'lucide-react';
+import StatCard from '@/components/StatCard';
 
 export default function ClassDirectory() {
   const dispatch = useDispatch();
@@ -40,9 +38,9 @@ export default function ClassDirectory() {
 
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <StatCard label="Total" value={stats.total} color="blue" />
-          <StatCard label="Active" value={stats.active} color="green" />
-          <StatCard label="Inactive" value={stats.inactive} color="yellow" />
+          <StatCard label="Total" value={stats.total} theme="blue" icon={School} />
+          <StatCard label="Active" value={stats.active} theme="emerald" icon={CheckCircle2} />
+          <StatCard label="Inactive" value={stats.inactive} theme="amber" icon={XCircle} />
         </div>
       )}
 
