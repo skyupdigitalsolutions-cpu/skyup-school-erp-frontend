@@ -10,8 +10,10 @@ import noticesReducer from '@/features/notices/noticeSlice';
 import reportsReducer from '@/features/reports/reportSlice';
 import financeReducer from '@/features/finance/financeSlice';
 import leaveManagementReducer from '@/features/leave-management/leaveSlice';
+import authReducer from '@/features/authentication/authSlice';
 
 const rootReducer = {
+  auth: authReducer,
   principalStudents: studentReducer,
   principalTeachers: teacherReducer,
   caretaker: caretakerReducer,

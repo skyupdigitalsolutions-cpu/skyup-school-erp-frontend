@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { logout } from '@/features/authentication/authSlice';
 
 // ── Nav items ─────────────────────────────────────────────────────────────────
 const NAV_ITEMS = [
@@ -139,6 +141,16 @@ const NAV_ITEMS = [
 
 // ── Sidebar component ─────────────────────────────────────────────────────────
 function Sidebar({ collapsed, onToggle }) {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const user = useSelector((s) => s.auth.user);
+  const initial = (user?.name || 'P').trim().charAt(0).toUpperCase();
+
+  async function handleLogout() {
+    await dispatch(logout());
+    navigate('/login', { replace: true });
+  }
+
   return (
     <aside
       className={`
@@ -224,15 +236,29 @@ function Sidebar({ collapsed, onToggle }) {
         {/* Profile stub */}
         <div className={`flex items-center gap-3 px-3 py-2 rounded-lg ${collapsed ? 'justify-center' : ''}`}>
           <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-xs font-bold shrink-0">
-            P
+            {initial}
           </div>
           {!collapsed && (
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-white/80 truncate">Principal</p>
-              <p className="text-[10px] text-white/30 truncate">Admin</p>
+              <p className="text-xs font-semibold text-white/80 truncate">{user?.name || 'Principal'}</p>
+              <p className="text-[10px] text-white/30 truncate capitalize">
+                {user?.roles?.[0] || 'Admin'}
+              </p>
             </div>
           )}
         </div>
+
+        {/* Logout */}
+        <button
+          onClick={handleLogout}
+          className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-white/40 hover:text-white hover:bg-white/8 transition-all text-xs font-medium ${collapsed ? 'justify-center' : ''}`}
+          title="Log out"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-4 h-4">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" />
+          </svg>
+          {!collapsed && <span>Log out</span>}
+        </button>
 
         {/* Toggle button */}
         <button

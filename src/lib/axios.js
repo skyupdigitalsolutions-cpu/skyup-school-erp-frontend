@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getAccessToken, setAccessToken, clearAccessToken } from './tokenStore';
 
 /**
  * Pre-configured Axios instance used by every feature module's API layer.
@@ -16,10 +17,15 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Attach the school context header when a tenant slug is known (set at login).
+// Attach the school context header when a tenant slug is known (set at login),
+// and the access token when one is held in memory (see tokenStore.js).
 api.interceptors.request.use((config) => {
   const tenant = localStorage.getItem('tenantSlug');
   if (tenant) config.headers['X-Tenant-Id'] = tenant;
+
+  const token = getAccessToken();
+  if (token) config.headers['Authorization'] = `Bearer ${token}`;
+
   return config;
 });
 
@@ -45,15 +51,23 @@ api.interceptors.response.use(
           queue.push({ resolve, reject, config: original })
         );
       }
+      // Never try to refresh a failed refresh/login call itself — avoids a
+      // loop when there is no session at all (e.g. first load, logged out).
+      if (original.url === '/auth/refresh' || original.url === '/auth/login') {
+        return Promise.reject(error);
+      }
+
       original._retry = true;
       isRefreshing = true;
       try {
-        await api.post('/auth/refresh');
+        const { data } = await api.post('/auth/refresh');
+        setAccessToken(data?.data?.accessToken);
         isRefreshing = false;
         flushQueue(null);
         return api(original);
       } catch (refreshError) {
         isRefreshing = false;
+        clearAccessToken();
         flushQueue(refreshError);
         // Refresh failed — hand off to the auth flow (e.g. redirect to login).
         return Promise.reject(refreshError);

@@ -1,6 +1,8 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { Suspense } from 'react';
 import PrincipalLayout from '@/layouts/PrincipalLayout';
+import ProtectedRoute from '@/routes/ProtectedRoute';
+import { authRoutes } from '@/modules/authentication/routes';
 import { principalRoutes } from '@/modules/principal/routes';
 import { caretakerRoutes } from '@/modules/caretaker/routes';
 import { eventRoutes } from '@/modules/events/routes';
@@ -19,9 +21,14 @@ function Loading() {
 export const router = createBrowserRouter(
   [
     { path: '/', element: <Navigate to="/principal/dashboard" replace /> },
+    ...authRoutes,
     {
       path: '/principal',
-      element: <PrincipalLayout />,
+      element: (
+        <ProtectedRoute>
+          <PrincipalLayout />
+        </ProtectedRoute>
+      ),
       children: [
         { index: true, element: <Navigate to="dashboard" replace /> },
         ...dashboardRoutes,
