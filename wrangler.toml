@@ -1,0 +1,5 @@
+name = "skyup-school-erp-frontend"
+compatibility_date = "2026-09-04"
+
+[assets]
+directory = "dist"
