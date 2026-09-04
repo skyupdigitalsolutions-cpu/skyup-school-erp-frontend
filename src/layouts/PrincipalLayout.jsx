@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '@/features/authentication/authSlice';
+import { fetchLatestNotices } from '@/features/notices/noticeSlice';
 
 // ── Nav items ─────────────────────────────────────────────────────────────────
 const NAV_ITEMS = [
@@ -285,6 +286,19 @@ function Sidebar({ collapsed, onToggle }) {
 // ── Top bar ───────────────────────────────────────────────────────────────────
 function Topbar({ sidebarCollapsed, onMenuClick }) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const latestNotices = useSelector((s) => s.notices.latest);
+  const [notifOpen, setNotifOpen] = useState(false);
+
+  const toggleNotifications = () => {
+    setNotifOpen((open) => {
+      if (!open) dispatch(fetchLatestNotices(5));
+      return !open;
+    });
+  };
+
+  const PRIORITY_DOT = { high: 'bg-red-500', medium: 'bg-amber-500', low: 'bg-gray-300' };
 
   const PAGE_LABELS = {
     dashboard: 'Dashboard',
@@ -323,13 +337,61 @@ function Topbar({ sidebarCollapsed, onMenuClick }) {
       {/* Right actions */}
       <div className="flex items-center gap-2">
         {/* Notification bell */}
-        <button className="relative p-2 rounded-lg hover:bg-gray-100 text-gray-500 transition">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-5 h-5">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 17H5a2 2 0 01-1.98-2.28l1-7A2 2 0 016 6h12a2 2 0 011.98 1.72l1 7A2 2 0 0119 17h-4z" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v1a3 3 0 006 0v-1" />
-          </svg>
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
-        </button>
+        <div className="relative">
+          <button
+            onClick={toggleNotifications}
+            className="relative p-2 rounded-lg hover:bg-gray-100 text-gray-500 transition"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-5 h-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 17H5a2 2 0 01-1.98-2.28l1-7A2 2 0 016 6h12a2 2 0 011.98 1.72l1 7A2 2 0 0119 17h-4z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v1a3 3 0 006 0v-1" />
+            </svg>
+            {latestNotices.length > 0 && (
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
+            )}
+          </button>
+
+          {notifOpen && (
+            <>
+              {/* Backdrop to close on outside click */}
+              <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />
+              <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl border shadow-lg z-50 overflow-hidden">
+                <div className="px-4 py-3 border-b flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-gray-800">Notices</h3>
+                  <button
+                    onClick={() => { setNotifOpen(false); navigate('/principal/notices'); }}
+                    className="text-xs font-medium text-blue-600 hover:underline"
+                  >
+                    View all
+                  </button>
+                </div>
+                <div className="max-h-80 overflow-y-auto">
+                  {latestNotices.length === 0 ? (
+                    <p className="text-sm text-gray-400 text-center py-8">No notices yet.</p>
+                  ) : (
+                    <ul className="divide-y divide-gray-50">
+                      {latestNotices.map((n) => (
+                        <li
+                          key={n._id}
+                          onClick={() => { setNotifOpen(false); navigate('/principal/notices'); }}
+                          className="px-4 py-3 hover:bg-gray-50 cursor-pointer flex items-start gap-2.5"
+                        >
+                          <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${PRIORITY_DOT[n.priority] || 'bg-gray-300'}`} />
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-gray-800 truncate">{n.title}</p>
+                            <p className="text-xs text-gray-400 mt-0.5">
+                              {new Date(n.createdAt).toLocaleDateString()} · <span className="capitalize">{n.category}</span>
+                            </p>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
 
         {/* Avatar */}
         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold cursor-pointer">

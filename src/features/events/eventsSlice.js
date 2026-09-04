@@ -21,8 +21,8 @@ export const updateEvent = createAsyncThunk('events/update', async ({ id, payloa
   try { const { data } = await api.put(`/events/${id}`, payload); return data.data; }
   catch (err) { return rejectWithValue(err.response?.data || { message: 'Failed to update.' }); }
 });
-export const changeEventStatus = createAsyncThunk('events/status', async ({ id, status }, { rejectWithValue }) => {
-  try { const { data } = await api.patch(`/events/${id}/status`, { status }); return data.data; }
+export const changeEventStatus = createAsyncThunk('events/status', async ({ id, status, notes }, { rejectWithValue }) => {
+  try { const { data } = await api.patch(`/events/${id}/status`, { status, notes }); return data.data; }
   catch (err) { return rejectWithValue(err.response?.data); }
 });
 export const deleteEvent = createAsyncThunk('events/delete', async (id, { rejectWithValue }) => {

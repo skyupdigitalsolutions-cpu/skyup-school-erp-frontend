@@ -40,7 +40,8 @@ export default function AddExam() {
   const [form, setForm] = useState({
     examId: '', name: '', code: '', type: '', academicYear: '', term: '', description: '', status: 'draft',
     classAllocations: [{ class: '', sections: [] }],
-    timetable: [{ date: '', subject: '', class: '', section: '', startTime: '', endTime: '', duration: 60, room: '', maxMarks: 100, passingMarks: 35 }],
+    timetable: [{ date: '', subject: '', class: '', section: '', startTime: '', endTime: '', duration: 60, room: '', invigilatorsText: '', maxMarks: 100, passingMarks: 35 }],
+    rooms: [],
   });
 
   useEffect(() => {
@@ -56,8 +57,9 @@ export default function AddExam() {
       description: current.description || '', status: current.status || 'draft',
       classAllocations: current.classAllocations?.length ? current.classAllocations : [{ class: '', sections: [] }],
       timetable: current.timetable?.length
-        ? current.timetable.map((t) => ({ ...t, date: t.date ? String(t.date).slice(0, 10) : '' }))
-        : [{ date: '', subject: '', class: '', section: '', startTime: '', endTime: '', duration: 60, room: '', maxMarks: 100, passingMarks: 35 }],
+        ? current.timetable.map((t) => ({ ...t, date: t.date ? String(t.date).slice(0, 10) : '', invigilatorsText: (t.invigilators || []).map(i => i.name).join(', ') }))
+        : [{ date: '', subject: '', class: '', section: '', startTime: '', endTime: '', duration: 60, room: '', invigilatorsText: '', maxMarks: 100, passingMarks: 35 }],
+      rooms: current.rooms?.length ? current.rooms.map((r) => ({ ...r })) : [],
     });
     setLoaded(true);
   }, [current, id, isEdit]);
@@ -73,7 +75,7 @@ export default function AddExam() {
   const setTimetable = (idx, field, value) => {
     setForm(prev => { const t = [...prev.timetable]; t[idx] = { ...t[idx], [field]: value }; return { ...prev, timetable: t }; });
   };
-  const addTimetableRow = () => setForm(prev => ({ ...prev, timetable: [...prev.timetable, { date: '', subject: '', class: '', section: '', startTime: '', endTime: '', duration: 60, room: '', maxMarks: 100, passingMarks: 35 }] }));
+  const addTimetableRow = () => setForm(prev => ({ ...prev, timetable: [...prev.timetable, { date: '', subject: '', class: '', section: '', startTime: '', endTime: '', duration: 60, room: '', invigilatorsText: '', maxMarks: 100, passingMarks: 35 }] }));
   const removeTimetableRow = idx => setForm(prev => ({ ...prev, timetable: prev.timetable.filter((_, i) => i !== idx) }));
 
   const setAllocation = (idx, field, value) => {
@@ -81,6 +83,12 @@ export default function AddExam() {
   };
   const addAllocation = () => setForm(prev => ({ ...prev, classAllocations: [...prev.classAllocations, { class: '', sections: [] }] }));
   const removeAllocation = idx => setForm(prev => ({ ...prev, classAllocations: prev.classAllocations.filter((_, i) => i !== idx) }));
+
+  const setRoom = (idx, field, value) => setForm(prev => {
+    const r = [...prev.rooms]; r[idx] = { ...r[idx], [field]: value }; return { ...prev, rooms: r };
+  });
+  const addRoom = () => setForm(prev => ({ ...prev, rooms: [...prev.rooms, { roomNo: '', capacity: '', block: '', invigilator: '' }] }));
+  const removeRoom = idx => setForm(prev => ({ ...prev, rooms: prev.rooms.filter((_, i) => i !== idx) }));
 
   const handleSubmit = async () => {
     setError('');
@@ -90,7 +98,15 @@ export default function AddExam() {
     if (!form.academicYear.trim()) return setError('Academic year is required.');
     setSubmitting(true);
     try {
-      const payload = { ...form, classAllocations: form.classAllocations.filter(a => a.class) };
+      const payload = {
+        ...form,
+        classAllocations: form.classAllocations.filter(a => a.class),
+        timetable: form.timetable.map(({ invigilatorsText, ...row }) => ({
+          ...row,
+          invigilators: (invigilatorsText || '').split(',').map(n => n.trim()).filter(Boolean).map(name => ({ name })),
+        })),
+        rooms: form.rooms.filter(r => r.roomNo?.trim()).map(r => ({ ...r, capacity: Number(r.capacity) || 0 })),
+      };
       const result = isEdit
         ? await dispatch(updateExam({ id, payload }))
         : await dispatch(createExam(payload));
@@ -127,7 +143,7 @@ export default function AddExam() {
         <Field label="Exam Type" required><Select value={form.type} onChange={e => set('type', e.target.value)} options={EXAM_TYPES} /></Field>
         <Field label="Academic Year" required><Input placeholder="e.g. 2025-26" value={form.academicYear} onChange={e => set('academicYear', e.target.value)} /></Field>
         <Field label="Term"><Input placeholder="e.g. Term 1, Q2" value={form.term} onChange={e => set('term', e.target.value)} /></Field>
-        <Field label="Status"><Select value={form.status} onChange={e => set('status', e.target.value)} options={[{ value:'draft', label:'Draft' },{ value:'scheduled', label:'Scheduled' }]} /></Field>
+        <Field label="Status"><Select value={form.status} onChange={e => set('status', e.target.value)} options={[{ value:'draft', label:'Draft' },{ value:'scheduled', label:'Scheduled' },{ value:'ongoing', label:'Ongoing' },{ value:'evaluation', label:'Evaluation' },{ value:'completed', label:'Completed' },{ value:'cancelled', label:'Cancelled' }]} /></Field>
         <div className="sm:col-span-2 lg:col-span-3">
           <Field label="Description"><textarea className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm h-20 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Exam description…" value={form.description} onChange={e => set('description', e.target.value)} /></Field>
         </div>
@@ -190,6 +206,34 @@ export default function AddExam() {
               <Field label="Room"><Input placeholder="e.g. Room 101" value={row.room} onChange={e => setTimetable(i,'room',e.target.value)} /></Field>
               <Field label="Max Marks"><Input type="number" value={row.maxMarks} onChange={e => setTimetable(i,'maxMarks',+e.target.value)} /></Field>
               <Field label="Pass Marks"><Input type="number" value={row.passingMarks} onChange={e => setTimetable(i,'passingMarks',+e.target.value)} /></Field>
+              <div className="col-span-2 md:col-span-4 lg:col-span-5">
+                <Field label="Invigilators (assign teachers/staff)"><Input placeholder="e.g. Tariq Teacher, Rohan Bhatt" value={row.invigilatorsText} onChange={e => setTimetable(i,'invigilatorsText',e.target.value)} /></Field>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Rooms */}
+      <div className="bg-white rounded-xl border overflow-hidden">
+        <div className="px-5 py-4 border-b flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-gray-800">Exam Rooms</h3>
+            <p className="text-xs text-gray-400 mt-0.5">Assign rooms and invigilators independent of individual subject sittings</p>
+          </div>
+          <button onClick={addRoom} className="text-xs px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 font-medium hover:bg-blue-100">+ Add Room</button>
+        </div>
+        <div className="p-5 space-y-3">
+          {form.rooms.length === 0 && <p className="text-sm text-gray-400 text-center py-4">No rooms added yet.</p>}
+          {form.rooms.map((r, i) => (
+            <div key={i} className="grid grid-cols-2 md:grid-cols-4 gap-3 p-3 bg-gray-50 rounded-xl border relative">
+              <button onClick={() => removeRoom(i)} className="absolute top-2 right-2 text-gray-300 hover:text-red-500">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+              <Field label="Room No"><Input placeholder="e.g. R-101" value={r.roomNo} onChange={e => setRoom(i, 'roomNo', e.target.value)} /></Field>
+              <Field label="Capacity"><Input type="number" placeholder="30" value={r.capacity} onChange={e => setRoom(i, 'capacity', e.target.value)} /></Field>
+              <Field label="Block"><Input placeholder="e.g. Main Block" value={r.block} onChange={e => setRoom(i, 'block', e.target.value)} /></Field>
+              <Field label="Invigilator"><Input placeholder="Teacher/staff name" value={r.invigilator} onChange={e => setRoom(i, 'invigilator', e.target.value)} /></Field>
             </div>
           ))}
         </div>

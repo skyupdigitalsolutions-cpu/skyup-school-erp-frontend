@@ -89,6 +89,23 @@ export default function ExamDetail() {
         </div>
       )}
 
+      {exam.rooms?.length > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
+          <div className="px-5 py-4 border-b border-gray-100">
+            <h3 className="text-sm font-semibold text-gray-800">Exam Rooms</h3>
+          </div>
+          <div className="p-5 grid grid-cols-2 sm:grid-cols-3 gap-4">
+            {exam.rooms.map((r, i) => (
+              <div key={i} className="bg-gray-50 rounded-lg p-3">
+                <p className="text-sm font-semibold text-gray-800">{r.roomNo}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{r.block} · Capacity {r.capacity}</p>
+                {r.invigilator && <p className="text-xs text-gray-500 mt-1">Invigilator: {r.invigilator}</p>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {exam.timetable?.length > 0 && (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-100">
@@ -97,7 +114,7 @@ export default function ExamDetail() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-100">
-                <tr>{['Date', 'Subject', 'Class', 'Section', 'Time', 'Room', 'Max Marks', 'Pass Marks'].map((h) => (
+                <tr>{['Date', 'Subject', 'Class', 'Section', 'Time', 'Room', 'Invigilators', 'Max Marks', 'Pass Marks'].map((h) => (
                   <th key={h} className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
                 ))}</tr>
               </thead>
@@ -110,8 +127,40 @@ export default function ExamDetail() {
                     <td className="px-4 py-2.5 text-gray-600">{row.section}</td>
                     <td className="px-4 py-2.5 text-xs text-gray-600">{row.startTime}–{row.endTime}</td>
                     <td className="px-4 py-2.5 text-xs text-gray-600">{row.room}</td>
+                    <td className="px-4 py-2.5 text-xs text-gray-600">{(row.invigilators || []).map(inv => inv.name).join(', ') || '—'}</td>
                     <td className="px-4 py-2.5 text-gray-600">{row.maxMarks}</td>
                     <td className="px-4 py-2.5 text-gray-600">{row.passingMarks}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {exam.results?.length > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100">
+            <h3 className="text-sm font-semibold text-gray-800">Published Results</h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b border-gray-100">
+                <tr>{['Rank', 'Student', 'Total Marks', 'Percentage', 'Grade', 'Status'].map((h) => (
+                  <th key={h} className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                ))}</tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {[...exam.results].sort((a, b) => a.rank - b.rank).map((r, i) => (
+                  <tr key={i}>
+                    <td className="px-4 py-2.5 font-semibold text-gray-800">#{r.rank}</td>
+                    <td className="px-4 py-2.5 text-gray-700">{r.name}</td>
+                    <td className="px-4 py-2.5 text-gray-600">{r.totalMarks} / {r.maxTotalMarks}</td>
+                    <td className="px-4 py-2.5 text-gray-600">{r.percentage}%</td>
+                    <td className="px-4 py-2.5 text-gray-600">{r.grade}</td>
+                    <td className="px-4 py-2.5">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${r.status === 'pass' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{r.status}</span>
+                    </td>
                   </tr>
                 ))}
               </tbody>
