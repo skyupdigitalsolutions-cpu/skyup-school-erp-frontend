@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { login } from '@/features/authentication/authSlice';
+import { homePathForRoles } from '@/lib/roleRedirect';
 
 export default function Login() {
   const dispatch = useDispatch();
@@ -26,7 +27,14 @@ export default function Login() {
 
     const result = await dispatch(login({ email: email.trim().toLowerCase(), password }));
     if (login.fulfilled.match(result)) {
-      const redirectTo = location.state?.from?.pathname || '/principal/dashboard';
+      // Redirect by the logged-in user's own role, never a hardcoded portal —
+      // this is what previously sent every role to /principal/dashboard.
+      // Only honor `from` if it actually belongs to that role's own portal
+      // (otherwise a teacher who got bounced off /principal/... would be
+      // bounced right back there instead of to their own dashboard).
+      const home = homePathForRoles(result.payload?.roles);
+      const from = location.state?.from?.pathname;
+      const redirectTo = from && from.startsWith(home.split('/').slice(0, 2).join('/')) ? from : home;
       navigate(redirectTo, { replace: true });
     }
   }
