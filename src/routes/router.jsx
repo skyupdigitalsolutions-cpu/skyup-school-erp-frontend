@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
-import { Suspense } from 'react';
 import PrincipalLayout from '@/layouts/PrincipalLayout';
+import TeacherLayout from '@/layouts/TeacherLayout';
+import StudentLayout from '@/layouts/StudentLayout';
 import ProtectedRoute from '@/routes/ProtectedRoute';
 import { authRoutes } from '@/modules/authentication/routes';
 import { principalRoutes } from '@/modules/principal/routes';
@@ -13,19 +14,19 @@ import { noticeRoutes } from '@/modules/notices/routes';
 import { reportRoutes } from '@/modules/reports/routes';
 import { financeRoutes } from '@/modules/finance/routes';
 import { leaveManagementRoutes } from '@/modules/leave-management/routes';
-
-function Loading() {
-  return <div className="flex items-center justify-center h-64 text-gray-400 text-sm">Loading…</div>;
-}
+import { teacherRoutes } from '@/modules/teacher/routes';
+import { studentRoutes } from '@/modules/student/routes';
 
 export const router = createBrowserRouter(
   [
+    // Root just needs *some* landing spot before we know who's logged in;
+    // ProtectedRoute + the role check below sort out where they actually end up.
     { path: '/', element: <Navigate to="/principal/dashboard" replace /> },
     ...authRoutes,
     {
       path: '/principal',
       element: (
-        <ProtectedRoute>
+        <ProtectedRoute allowedRoles={['principal', 'administrator', 'caretaker', 'finance']}>
           <PrincipalLayout />
         </ProtectedRoute>
       ),
@@ -41,6 +42,30 @@ export const router = createBrowserRouter(
         ...eventRoutes,
         ...examRoutes,
         ...classRoutes,
+      ],
+    },
+    {
+      path: '/teacher',
+      element: (
+        <ProtectedRoute allowedRoles={['teacher']}>
+          <TeacherLayout />
+        </ProtectedRoute>
+      ),
+      children: [
+        { index: true, element: <Navigate to="dashboard" replace /> },
+        ...teacherRoutes,
+      ],
+    },
+    {
+      path: '/student',
+      element: (
+        <ProtectedRoute allowedRoles={['student', 'parent']}>
+          <StudentLayout />
+        </ProtectedRoute>
+      ),
+      children: [
+        { index: true, element: <Navigate to="dashboard" replace /> },
+        ...studentRoutes,
       ],
     },
   ],
