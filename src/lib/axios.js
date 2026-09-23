@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { getAccessToken, setAccessToken, clearAccessToken } from './tokenStore';
+import { getAuthPortal } from './authPortal';
 
 /**
  * Pre-configured Axios instance used by every feature module's API layer.
@@ -8,8 +9,12 @@ import { getAccessToken, setAccessToken, clearAccessToken } from './tokenStore';
  *  - a response interceptor that transparently refreshes an expired access
  *    token once, then replays the original request.
  *
- * The actual /auth/refresh endpoint is provided by the Authentication module;
- * this interceptor is the client-side plumbing that will use it.
+ * There are two parallel auth surfaces (see authPortal.js):
+ *  - staff:  /auth/login       /auth/refresh       /auth/logout
+ *  - viewer: /student-auth/login /student-auth/refresh /student-auth/logout
+ * The interceptor picks the matching refresh endpoint based on which one
+ * last logged in successfully, so a teacher/principal session and a
+ * student/parent session each get refreshed against the right backend route.
  */
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api/v1',
@@ -39,6 +44,9 @@ const flushQueue = (error) => {
   queue = [];
 };
 
+const LOGIN_PATHS = ['/auth/login', '/student-auth/login'];
+const REFRESH_PATHS = ['/auth/refresh', '/student-auth/refresh'];
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -53,14 +61,16 @@ api.interceptors.response.use(
       }
       // Never try to refresh a failed refresh/login call itself — avoids a
       // loop when there is no session at all (e.g. first load, logged out).
-      if (original.url === '/auth/refresh' || original.url === '/auth/login') {
+      if (LOGIN_PATHS.includes(original.url) || REFRESH_PATHS.includes(original.url)) {
         return Promise.reject(error);
       }
 
       original._retry = true;
       isRefreshing = true;
       try {
-        const { data } = await api.post('/auth/refresh');
+        const portal = getAuthPortal();
+        const refreshEndpoint = portal === 'viewer' ? '/student-auth/refresh' : '/auth/refresh';
+        const { data } = await api.post(refreshEndpoint);
         setAccessToken(data?.data?.accessToken);
         isRefreshing = false;
         flushQueue(null);
