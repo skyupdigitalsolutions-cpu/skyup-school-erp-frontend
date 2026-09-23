@@ -1,12 +1,20 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '@/lib/axios';
 import { setAccessToken, clearAccessToken } from '@/lib/tokenStore';
+import { setAuthPortal, clearAuthPortal, getAuthPortal } from '@/lib/authPortal';
 
 /**
- * Logs in against the currently-set tenant (the School Code field on the
- * Login page writes `tenantSlug` to localStorage BEFORE this fires, so the
- * axios interceptor already attaches X-Tenant-Id by the time this request
- * goes out).
+ * Two completely separate backend login endpoints exist:
+ *  - POST /auth/login          -> staff (principal/teacher/administrator/caretaker/finance),
+ *                                 responds with { user, accessToken, refreshToken }
+ *  - POST /student-auth/login  -> student/parent viewers,
+ *                                 responds with { viewer, accessToken, refreshToken }
+ *
+ * The single login form doesn't ask "are you staff or a student", so we try
+ * the staff endpoint first and fall back to the student/parent endpoint on
+ * an auth failure. Whichever one succeeds, we normalize the result to a
+ * single shape ({ ...person, roles: [...] }) so the rest of the app (and the
+ * role -> home-path redirect) never has to know which endpoint answered.
  */
 export const login = createAsyncThunk(
   'auth/login',
@@ -14,39 +22,62 @@ export const login = createAsyncThunk(
     try {
       const { data } = await api.post('/auth/login', { email, password });
       setAccessToken(data.data.accessToken);
-      return data.data.user;
-    } catch (err) {
-      return rejectWithValue(
-        err.response?.data?.message || 'Unable to sign in. Check your school code, email and password.'
-      );
+      setAuthPortal('staff');
+      return data.data.user; // { id, name, email, roles, status, lastLoginAt }
+    } catch (staffErr) {
+      const staffStatus = staffErr.response?.status;
+      // Only fall back on "wrong credentials for this endpoint" — a network
+      // error or a 429 (rate limit) should surface as-is, not be masked by
+      // a second failing request.
+      if (staffStatus !== 401 && staffStatus !== 404) {
+        return rejectWithValue(
+          staffErr.response?.data?.message || 'Unable to sign in. Check your school code, email and password.'
+        );
+      }
+
+      try {
+        const { data } = await api.post('/student-auth/login', { email, password });
+        setAccessToken(data.data.accessToken);
+        setAuthPortal('viewer');
+        return data.data.viewer; // { id, viewerType, roles, studentId, name, ... }
+      } catch (viewerErr) {
+        return rejectWithValue(
+          viewerErr.response?.data?.message || 'Unable to sign in. Check your school code, email and password.'
+        );
+      }
     }
   }
 );
 
 /**
  * Attempts to silently restore a session on app load using the HttpOnly
- * refresh cookie (if the browser still has one from a previous visit and
- * `tenantSlug` is still set). Deliberately swallows failure — "not logged
- * in yet" is an expected, non-error outcome on first visit.
+ * refresh cookie. Which refresh endpoint to call depends on which portal
+ * last logged in successfully (persisted alongside tenantSlug), since staff
+ * and student/parent sessions are issued by two different endpoints.
  */
 export const bootstrapAuth = createAsyncThunk('auth/bootstrap', async (_, { rejectWithValue }) => {
   const tenant = localStorage.getItem('tenantSlug');
-  if (!tenant) return rejectWithValue(null);
+  const portal = getAuthPortal();
+  if (!tenant || !portal) return rejectWithValue(null);
 
   try {
-    const { data } = await api.post('/auth/refresh');
+    const endpoint = portal === 'viewer' ? '/student-auth/refresh' : '/auth/refresh';
+    const { data } = await api.post(endpoint);
     setAccessToken(data.data.accessToken);
-    return data.data.user;
+    return data.data.user || data.data.viewer;
   } catch (err) {
     return rejectWithValue(null);
   }
 });
 
-export const logout = createAsyncThunk('auth/logout', async () => {
+export const logout = createAsyncThunk('auth/logout', async (_, { getState }) => {
+  const portal = getAuthPortal();
   try {
-    await api.post('/auth/logout');
+    const endpoint = portal === 'viewer' ? '/student-auth/logout' : '/auth/logout';
+    await api.post(endpoint);
   } finally {
     clearAccessToken();
+    clearAuthPortal();
   }
 });
 
