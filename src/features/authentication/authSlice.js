@@ -54,6 +54,12 @@ export const login = createAsyncThunk(
  * refresh cookie. Which refresh endpoint to call depends on which portal
  * last logged in successfully (persisted alongside tenantSlug), since staff
  * and student/parent sessions are issued by two different endpoints.
+ *
+ * If the refresh cookie is missing/expired, the backend correctly answers
+ * 401 — that's an expected "not logged in" outcome, not a bug. But we also
+ * clear the stale `authPortal` marker here so a page reload after that point
+ * doesn't keep re-attempting (and re-logging a 401 in devtools) forever;
+ * it now tries again only after the next successful login.
  */
 export const bootstrapAuth = createAsyncThunk('auth/bootstrap', async (_, { rejectWithValue }) => {
   const tenant = localStorage.getItem('tenantSlug');
@@ -66,11 +72,13 @@ export const bootstrapAuth = createAsyncThunk('auth/bootstrap', async (_, { reje
     setAccessToken(data.data.accessToken);
     return data.data.user || data.data.viewer;
   } catch (err) {
+    clearAccessToken();
+    clearAuthPortal(); // stop retrying a dead session on every future reload
     return rejectWithValue(null);
   }
 });
 
-export const logout = createAsyncThunk('auth/logout', async (_, { getState }) => {
+export const logout = createAsyncThunk('auth/logout', async () => {
   const portal = getAuthPortal();
   try {
     const endpoint = portal === 'viewer' ? '/student-auth/logout' : '/auth/logout';
